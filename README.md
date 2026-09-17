@@ -17,6 +17,21 @@ diff.
 - **CI-friendly** — exit code `1` when entropy exceeds threshold; JSON or human reports
 - **Zero runtime deps** — Python 3.11+ stdlib only (`pytest` for tests)
 
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Codebase / Diff] --> B[DNA Snapshot]
+    B --> C[Rules Engine]
+    C --> D[Entropy Score]
+    C --> E[Violations]
+    D --> F[Text / JSON Report]
+    E --> F
+    F --> G{threshold?}
+    G -->|breach| H[exit 1]
+    G -->|ok| I[exit 0]
+```
+
 ## Install
 
 ```bash
