@@ -1,5 +1,7 @@
 # semantic-drift-detector
 
+[![CI](https://github.com/medthemed/semantic-drift-detector/actions/workflows/ci.yml/badge.svg)](https://github.com/medthemed/semantic-drift-detector/actions/workflows/ci.yml)
+
 Catch architectural entropy before it compounds.
 
 AI coding agents are excellent at *local* pattern-matching. Over many patches they
@@ -65,6 +67,99 @@ Exit codes:
 | 0 | OK — entropy at or below threshold, no error-level violations |
 | 1 | Drift detected — threshold breach or error-level violations |
 | 2 | Usage error |
+
+## Example `dna.toml`
+
+A minimal profile you can commit at the repo root (hand-edit `rules`; the
+`[[modules]]` / `[[edges]]` sections are rewritten by `sdd snapshot`):
+
+```toml
+# Architectural DNA profile
+project_root = "/path/to/myapp"
+
+[rules]
+entropy_threshold = 0.25
+allowed_roots = ["myapp"]
+required_patterns = ["**/domain/**", "**/adapters/**"]
+exclude = ["**/migrations/**", "**/generated/**"]
+
+[[rules.layers]]
+name = "domain"
+prefixes = ["myapp.domain"]
+
+[[rules.layers]]
+name = "application"
+prefixes = ["myapp.application"]
+
+[[rules.layers]]
+name = "adapters"
+prefixes = ["myapp.adapters"]
+
+[[rules.layers]]
+name = "interfaces"
+prefixes = ["myapp.interfaces"]
+
+[[rules.forbidden_edges]]
+from_layer = "domain"
+to_layer = "adapters"
+reason = "domain must not depend on adapters"
+
+[[rules.forbidden_edges]]
+from_layer = "domain"
+to_layer = "interfaces"
+reason = "domain must not depend on delivery mechanisms"
+
+[[rules.naming]]
+kind = "module"
+pattern = "^[a-z_][a-z0-9_]*$"
+message = "modules must be snake_case"
+```
+
+## GitHub Actions
+
+Drop this into `.github/workflows/architecture.yml` in your project. `sdd check`
+exits `1` on drift, which fails the job.
+
+```yaml
+name: Architecture
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install semantic-drift-detector
+        run: pip install semantic-drift-detector
+        # or: pip install git+https://github.com/medthemed/semantic-drift-detector.git
+
+      - name: Full-tree check
+        run: sdd check .
+
+      - name: PR diff check
+        if: github.event_name == 'pull_request'
+        run: |
+          git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff
+          sdd check --diff /tmp/pr.diff --dna dna.toml
+```
+
+Tips:
+
+- Commit `dna.toml` at the repo root so CI and local runs share the same rules.
+- Use `exclude` for migrations/generated code so they never fail the gate.
+- Start with a generous `--threshold` (e.g. `0.35`) and tighten once the tree is clean.
+- Prefer the PR-diff check in busy repos; full-tree checks are better on main.
 
 ## Example report
 
