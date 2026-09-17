@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `--format json|sarif-lite|text` on `sdd check` and `sdd check-batch`
+  (`--json` remains as shorthand for `--format json`).
+- SARIF-lite renderer (`render_sarif_lite`) emitting a minimal SARIF 2.1.0
+  document; entropy and threshold live in `runs[].properties`.
+- JSON Schema files: `schemas/report.schema.json` and
+  `schemas/batch-report.schema.json`.
+- README: stdout contract for CI piping (stdout vs stderr, stable keys).
+- Format-dispatch tests and schema shape checks.
+
 ## [0.4.0] - 2026-09-24
 
 ### Added

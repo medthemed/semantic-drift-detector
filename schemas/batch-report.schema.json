@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/medthemed/semantic-drift-detector/schemas/batch-report.schema.json",
+  "title": "semantic-drift-detector batch report",
+  "description": "Stable stdout contract for `sdd check-batch --format json`.",
+  "type": "object",
+  "required": ["summary", "items"],
+  "additionalProperties": true,
+  "properties": {
+    "summary": {
+      "type": "object",
+      "required": ["total", "ok", "breached", "errors"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "ok": { "type": "integer", "minimum": 0 },
+        "breached": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["root", "ok", "breached"],
+        "properties": {
+          "root": { "type": "string" },
+          "ok": { "type": "boolean" },
+          "error": { "type": ["string", "null"] },
+          "error_type": { "type": ["string", "null"] },
+          "breached": { "type": "boolean" },
+          "result": {
+            "anyOf": [
+              { "type": "null" },
+              { "$ref": "report.schema.json" }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

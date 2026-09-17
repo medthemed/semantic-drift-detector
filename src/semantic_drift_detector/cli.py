@@ -18,10 +18,9 @@ from semantic_drift_detector.errors import (
 )
 from semantic_drift_detector.profile import extract_dna, save_dna, snapshot_path_default
 from semantic_drift_detector.report import (
-    render_batch_json,
-    render_batch_text,
-    render_json,
-    render_text,
+    FORMAT_CHOICES,
+    render_batch,
+    render_result,
 )
 
 __version__ = "0.4.0"
@@ -103,9 +102,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Override entropy threshold (0-1)",
     )
     p_check.add_argument(
+        "--format",
+        choices=FORMAT_CHOICES,
+        default="text",
+        help="Report format: text, json, or sarif-lite (default: text)",
+    )
+    p_check.add_argument(
         "--json",
         action="store_true",
-        help="Emit machine-readable JSON report",
+        help="Shorthand for --format json",
     )
     p_check.add_argument(
         "-v",
@@ -144,9 +149,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Named profile from the DNA profiles section",
     )
     p_batch.add_argument(
+        "--format",
+        choices=FORMAT_CHOICES,
+        default="text",
+        help="Report format: text, json, or sarif-lite (default: text)",
+    )
+    p_batch.add_argument(
         "--json",
         action="store_true",
-        help="Emit machine-readable JSON batch report",
+        help="Shorthand for --format json",
     )
 
     # version subcommand (alias)
@@ -213,10 +224,8 @@ def cmd_check(args: argparse.Namespace) -> int:
     if args.threshold is not None:
         result.threshold = args.threshold
 
-    if args.json:
-        sys.stdout.write(render_json(result))
-    else:
-        sys.stdout.write(render_text(result, verbose=args.verbose))
+    fmt = "json" if args.json else args.format
+    sys.stdout.write(render_result(result, fmt=fmt, verbose=args.verbose))
 
     return EXIT_DRIFT if result.breached else EXIT_OK
 
@@ -235,10 +244,8 @@ def cmd_check_batch(args: argparse.Namespace) -> int:
     dna_path = Path(args.dna) if args.dna else None
     report = check_batch(roots, dna_path=dna_path, profile_name=args.profile)
 
-    if args.json:
-        sys.stdout.write(render_batch_json(report))
-    else:
-        sys.stdout.write(render_batch_text(report))
+    fmt = "json" if args.json else args.format
+    sys.stdout.write(render_batch(report, fmt=fmt))
 
     if report.any_error:
         return EXIT_USAGE

@@ -17,7 +17,7 @@ diff.
 - **Entropy score (0–1)** — layer violations, naming drift, fan-out pressure, edge density
 - **Diff or directory checks** — analyze a full tree or a single `git diff`
 - **Batch mode** — `sdd check-batch` many roots or a manifest file in one run
-- **CI-friendly** — exit code `1` when entropy exceeds threshold; JSON or human reports
+- **CI-friendly** — exit code `1` when entropy exceeds threshold; text / JSON / SARIF-lite reports
 - **Zero runtime deps** — Python 3.11+ stdlib only (`pytest` for tests)
 
 ## Architecture
@@ -56,6 +56,8 @@ sdd check --diff patch.diff --dna /path/to/project/dna.toml
 
 # Machine-readable report
 sdd check /path/to/project --json
+sdd check /path/to/project --format json
+sdd check /path/to/project --format sarif-lite
 
 # Fail harder / softer
 sdd check /path/to/project --threshold 0.15
@@ -66,9 +68,9 @@ sdd check /path/to/project --profile strict
 # Batch: check several roots (monorepo / multi-service)
 sdd check-batch services/api services/worker libs/core
 
-# Batch: check every path listed in a manifest (one root per line)
+# Batch: check every path listed in a manifest (one path per line)
 sdd check-batch --manifest roots.txt
-sdd check-batch --manifest roots.txt --json
+sdd check-batch --manifest roots.txt --format json
 ```
 
 Exit codes:
@@ -78,6 +80,31 @@ Exit codes:
 | 0 | OK — entropy at or below threshold, no error-level violations |
 | 1 | Drift detected — threshold breach or error-level violations |
 | 2 | Usage error |
+
+## Stdout contract (CI piping)
+
+`--format` controls what is written to **stdout**. Diagnostics and usage
+errors always go to **stderr**. Exit codes are independent of format.
+
+| Format | stdout | Schema |
+|--------|--------|--------|
+| `text` (default) | human report | — |
+| `json` | single JSON object | [`schemas/report.schema.json`](schemas/report.schema.json) / [`schemas/batch-report.schema.json`](schemas/batch-report.schema.json) |
+| `sarif-lite` | SARIF 2.1.0-lite document | subset of SARIF; entropy in `runs[].properties` |
+
+`--json` is shorthand for `--format json`.
+
+```bash
+# pipe JSON into jq
+sdd check . --format json | jq '.entropy.value'
+
+# feed SARIF to a code-scanning upload step
+sdd check . --format sarif-lite > results.sarif
+```
+
+JSON report keys (stable): `mode`, `dna_source`, `threshold`, `breached`,
+`checked_files`, `violations`, `entropy`, `summary.{errors,warnings,total}`.
+Batch reports wrap per-root results under `items[]` with a `summary` block.
 
 ## Batch checks
 
