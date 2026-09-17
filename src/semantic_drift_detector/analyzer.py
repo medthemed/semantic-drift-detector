@@ -22,11 +22,15 @@ def analyze_directory(root: str | Path, dna_path: str | Path | None = None) -> C
 
         dna = load_dna(dna_path)
         source = str(dna_path)
-        # Still scan the live tree for current structure
-        modules, edges = build_snapshot(root_path)
+        # Still scan the live tree for current structure, honoring exclude globs
+        modules, edges = build_snapshot(root_path, exclude=list(dna.rules.exclude))
     else:
         dna, source = load_dna_for_root(root_path)
-        modules, edges = dna.modules, dna.edges
+        if dna.rules.exclude:
+            # Re-scan the live tree with exclusions applied
+            modules, edges = build_snapshot(root_path, exclude=list(dna.rules.exclude))
+        else:
+            modules, edges = dna.modules, dna.edges
 
     violations = evaluate_rules(modules, edges, dna.rules, root=root_path)
     entropy = compute_entropy(modules, edges, violations, dna.rules)
@@ -46,7 +50,7 @@ def analyze_directory_with_profile(
     root: str | Path, dna: DNAProfile
 ) -> CheckResult:
     root_path = Path(root).resolve()
-    modules, edges = build_snapshot(root_path)
+    modules, edges = build_snapshot(root_path, exclude=list(dna.rules.exclude))
     violations = evaluate_rules(modules, edges, dna.rules, root=root_path)
     entropy = compute_entropy(modules, edges, violations, dna.rules)
     return CheckResult(

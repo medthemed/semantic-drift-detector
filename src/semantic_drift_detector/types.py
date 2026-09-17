@@ -70,6 +70,7 @@ class DNARules:
     naming: list[NamingRule] = field(default_factory=list)
     required_patterns: list[str] = field(default_factory=list)  # path globs that must exist
     allowed_roots: list[str] = field(default_factory=list)  # top-level package roots
+    exclude: list[str] = field(default_factory=list)  # path globs to skip during scans
     entropy_threshold: float = 0.25
 
     def layer_map(self) -> dict[str, LayerSpec]:
@@ -119,6 +120,7 @@ class DNAProfile:
                 "naming": [asdict(nr) for nr in self.rules.naming],
                 "required_patterns": list(self.rules.required_patterns),
                 "allowed_roots": list(self.rules.allowed_roots),
+                "exclude": list(self.rules.exclude),
                 "entropy_threshold": self.rules.entropy_threshold,
             },
         }
@@ -179,6 +181,7 @@ class DNAProfile:
                 naming=naming,
                 required_patterns=list(rules_raw.get("required_patterns") or []),
                 allowed_roots=list(rules_raw.get("allowed_roots") or []),
+                exclude=list(rules_raw.get("exclude") or []),
                 entropy_threshold=float(rules_raw.get("entropy_threshold", 0.25)),
             ),
         )
