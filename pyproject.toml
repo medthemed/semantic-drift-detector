@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "semantic-drift-detector"
+version = "0.1.0"
+description = "Detect architectural entropy and semantic drift in AI-assisted codebases."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "medthemed", email = "medthemed@users.noreply.github.com" }]
+keywords = ["architecture", "static-analysis", "ai-code", "entropy", "lint"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4", "pytest-cov>=4.1"]
+
+[project.scripts]
+sdd = "semantic_drift_detector.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/medthemed/semantic-drift-detector"
+Repository = "https://github.com/medthemed/semantic-drift-detector"
+Issues = "https://github.com/medthemed/semantic-drift-detector/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.coverage.run]
+source = ["semantic_drift_detector"]
