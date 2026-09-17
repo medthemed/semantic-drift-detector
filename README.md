@@ -58,6 +58,9 @@ sdd check /path/to/project --json
 
 # Fail harder / softer
 sdd check /path/to/project --threshold 0.15
+
+# Named profiles from dna.toml ([profiles.strict], [profiles.relaxed], ...)
+sdd check /path/to/project --profile strict
 ```
 
 Exit codes:
@@ -144,7 +147,39 @@ reason = "domain must not depend on delivery mechanisms"
 kind = "module"
 pattern = "^[a-z_][a-z0-9_]*$"
 message = "modules must be snake_case"
+
+# Named profiles inherit [rules] and override selected keys.
+# Use with: sdd check --profile strict
+[profiles.default]
+entropy_threshold = 0.25
+
+[profiles.strict]
+entropy_threshold = 0.10
+
+[profiles.relaxed]
+entropy_threshold = 0.40
+exclude = ["**/migrations/**", "**/generated/**", "**/protos/**"]
 ```
+
+### Profiles
+
+A `dna.toml` may define `[profiles.<name>]` sections. Each profile starts from
+the base `[rules]` and overrides only the keys you set:
+
+| Key | Effect when overridden |
+|-----|------------------------|
+| `entropy_threshold` | Gate becomes stricter / looser |
+| `exclude` | Different skip globs per profile |
+| `allowed_roots` / `required_patterns` | Different package constraints |
+| `layers` / `forbidden_edges` / `naming` | Full replacement of that list |
+
+```bash
+sdd check . --profile strict    # CI / main branch
+sdd check .                     # default profile (base [rules])
+sdd check . --profile relaxed   # local refactoring
+```
+
+Unknown profile names exit with code `2` and list the available names.
 
 ## GitHub Actions
 

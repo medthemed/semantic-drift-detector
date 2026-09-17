@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Named architecture profiles: `[profiles.<name>]` sections in `dna.toml` /
+  `dna.yaml` / `dna.json` inherit base `[rules]` and override selected keys.
+- `sdd check --profile <name>` selects a named profile (default: base rules).
+- `select_profile(...)` / `merge_profile_overrides(...)` in the public API.
+- `UnknownProfileError` when a requested profile is missing.
+- README: profiles documentation and CLI examples.
+
 ## [0.2.0] - 2026-09-20
 
 ### Added

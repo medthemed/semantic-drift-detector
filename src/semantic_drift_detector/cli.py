@@ -13,6 +13,7 @@ from semantic_drift_detector.errors import (
     DnaFileNotFoundError,
     DnaProfileError,
     SemanticDriftError,
+    UnknownProfileError,
 )
 from semantic_drift_detector.profile import extract_dna, save_dna, snapshot_path_default
 from semantic_drift_detector.report import render_json, render_text
@@ -84,6 +85,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to dna.toml / dna.yaml (default: look under root, else infer)",
     )
     p_check.add_argument(
+        "--profile",
+        default=None,
+        metavar="NAME",
+        help="Named profile from the DNA profiles section (default: base rules)",
+    )
+    p_check.add_argument(
         "--threshold",
         type=float,
         default=None,
@@ -146,7 +153,12 @@ def cmd_check(args: argparse.Namespace) -> int:
             if not root.exists():
                 print(f"error: directory not found: {root}", file=sys.stderr)
                 return EXIT_USAGE
-            result = analyze_directory(root, dna_path=dna_path)
+            result = analyze_directory(
+                root, dna_path=dna_path, profile_name=args.profile
+            )
+    except UnknownProfileError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
     except (DnaFileNotFoundError, DnaProfileError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USAGE

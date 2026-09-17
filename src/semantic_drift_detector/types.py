@@ -102,6 +102,9 @@ class DNAProfile:
     modules: list[ModuleInfo] = field(default_factory=list)
     rules: DNARules = field(default_factory=DNARules)
     edges: list[ImportEdge] = field(default_factory=list)
+    # Named profile override dicts from [profiles.<name>] sections.
+    # Each dict may override entropy_threshold, layers, forbidden_edges, etc.
+    profiles: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def module_names(self) -> list[str]:
         return [m.module for m in self.modules]
@@ -109,8 +112,13 @@ class DNAProfile:
     def edge_pairs(self) -> list[tuple[str, str]]:
         return [(e.source, e.target) for e in self.edges]
 
+    def profile_names(self) -> list[str]:
+        """Default plus any named profiles defined in the DNA file."""
+        extras = sorted(name for name in self.profiles if name != "default")
+        return ["default", *extras]
+
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data: dict[str, Any] = {
             "project_root": self.project_root,
             "modules": [asdict(m) for m in self.modules],
             "edges": [asdict(e) for e in self.edges],
@@ -124,6 +132,9 @@ class DNAProfile:
                 "entropy_threshold": self.rules.entropy_threshold,
             },
         }
+        if self.profiles:
+            data["profiles"] = {name: dict(overrides) for name, overrides in self.profiles.items()}
+        return data
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "DNAProfile":
@@ -171,6 +182,12 @@ class DNAProfile:
             )
             for item in data.get("edges") or []
         ]
+        raw_profiles = data.get("profiles") or {}
+        profiles: dict[str, dict[str, Any]] = {}
+        if isinstance(raw_profiles, dict):
+            for name, overrides in raw_profiles.items():
+                if isinstance(overrides, dict):
+                    profiles[str(name)] = dict(overrides)
         return cls(
             project_root=data.get("project_root", ""),
             modules=modules,
@@ -184,6 +201,7 @@ class DNAProfile:
                 exclude=list(rules_raw.get("exclude") or []),
                 entropy_threshold=float(rules_raw.get("entropy_threshold", 0.25)),
             ),
+            profiles=profiles,
         )
 
 
