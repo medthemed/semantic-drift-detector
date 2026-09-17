@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Typed exception module (`semantic_drift_detector.errors`): `SemanticDriftError`,
+  `DirectoryNotFoundError`, `DnaProfileError`, `DnaFileNotFoundError`,
+  `InvalidDnaError`. Typed errors also subclass the historical builtins.
+- Stable public `load_profile(...)` (same semantics as `load_dna`).
+- Integration tests covering snapshot → reload → directory check on a tiny
+  fixture tree, plus public `__all__` export checks.
+- README: Python API section with exception hierarchy.
+
+### Changed
+- `analyze_directory` and DNA loaders raise typed exceptions; CLI maps them
+  to exit code 2 with a clear stderr message.
+
 ## [0.1.1] - 2026-09-18
 
 ### Added

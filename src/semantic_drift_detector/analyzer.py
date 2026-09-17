@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from semantic_drift_detector.errors import DirectoryNotFoundError
 from semantic_drift_detector.entropy import compute_entropy
 from semantic_drift_detector.parser import build_snapshot
 from semantic_drift_detector.profile import load_dna_for_root
@@ -12,10 +13,31 @@ from semantic_drift_detector.types import CheckResult, DNAProfile, ModuleInfo
 
 
 def analyze_directory(root: str | Path, dna_path: str | Path | None = None) -> CheckResult:
-    """Analyze a full directory tree against DNA (loaded or inferred)."""
+    """Analyze a full directory tree against DNA (loaded or inferred).
+
+    Parameters
+    ----------
+    root:
+        Directory to scan.
+    dna_path:
+        Optional explicit DNA profile file. When omitted, a profile under
+        ``root`` is used if present, otherwise rules are inferred.
+
+    Returns
+    -------
+    CheckResult
+        Violations, entropy score, and metadata for the scan.
+
+    Raises
+    ------
+    DirectoryNotFoundError
+        If ``root`` does not exist.
+    DnaFileNotFoundError / InvalidDnaError
+        If ``dna_path`` is provided but cannot be loaded.
+    """
     root_path = Path(root).resolve()
     if not root_path.exists():
-        raise FileNotFoundError(f"Directory not found: {root_path}")
+        raise DirectoryNotFoundError(str(root_path))
 
     if dna_path is not None:
         from semantic_drift_detector.profile import load_dna

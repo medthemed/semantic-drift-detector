@@ -8,6 +8,12 @@ from pathlib import Path
 
 from semantic_drift_detector.analyzer import analyze_directory
 from semantic_drift_detector.diff_scan import analyze_diff
+from semantic_drift_detector.errors import (
+    DirectoryNotFoundError,
+    DnaFileNotFoundError,
+    DnaProfileError,
+    SemanticDriftError,
+)
 from semantic_drift_detector.profile import extract_dna, save_dna, snapshot_path_default
 from semantic_drift_detector.report import render_json, render_text
 
@@ -127,19 +133,29 @@ def cmd_snapshot(args: argparse.Namespace) -> int:
 def cmd_check(args: argparse.Namespace) -> int:
     dna_path = Path(args.dna) if args.dna else None
 
-    if args.diff:
-        diff_path = Path(args.diff)
-        if not diff_path.is_file():
-            print(f"error: diff not found: {diff_path}", file=sys.stderr)
-            return EXIT_USAGE
-        diff_text = diff_path.read_text(encoding="utf-8")
-        result = analyze_diff(diff_text, dna_path=dna_path)
-    else:
-        root = Path(args.root).resolve()
-        if not root.exists():
-            print(f"error: directory not found: {root}", file=sys.stderr)
-            return EXIT_USAGE
-        result = analyze_directory(root, dna_path=dna_path)
+    try:
+        if args.diff:
+            diff_path = Path(args.diff)
+            if not diff_path.is_file():
+                print(f"error: diff not found: {diff_path}", file=sys.stderr)
+                return EXIT_USAGE
+            diff_text = diff_path.read_text(encoding="utf-8")
+            result = analyze_diff(diff_text, dna_path=dna_path)
+        else:
+            root = Path(args.root).resolve()
+            if not root.exists():
+                print(f"error: directory not found: {root}", file=sys.stderr)
+                return EXIT_USAGE
+            result = analyze_directory(root, dna_path=dna_path)
+    except (DnaFileNotFoundError, DnaProfileError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    except DirectoryNotFoundError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    except SemanticDriftError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
 
     if args.threshold is not None:
         result.threshold = args.threshold

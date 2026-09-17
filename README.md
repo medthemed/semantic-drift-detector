@@ -68,6 +68,37 @@ Exit codes:
 | 1 | Drift detected — threshold breach or error-level violations |
 | 2 | Usage error |
 
+## Python API
+
+Import from the package root. These names are the stable surface:
+
+```python
+from semantic_drift_detector import (
+    analyze_directory,
+    extract_dna,
+    load_profile,   # preferred name for loading dna.toml / yaml / json
+    render_json,
+    render_text,
+    SemanticDriftError,
+)
+
+result = analyze_directory("/path/to/project")
+print(result.entropy.value, len(result.errors))
+
+profile = load_profile("/path/to/project/dna.toml")
+```
+
+Typed exceptions (each also subclasses the historical builtin so existing
+`except FileNotFoundError` / `except ValueError` code keeps working):
+
+```
+SemanticDriftError
+├── DirectoryNotFoundError          (also FileNotFoundError)
+└── DnaProfileError
+    ├── DnaFileNotFoundError        (also FileNotFoundError)
+    └── InvalidDnaError             (also ValueError)
+```
+
 ## Example `dna.toml`
 
 A minimal profile you can commit at the repo root (hand-edit `rules`; the
