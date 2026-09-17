@@ -1,0 +1,70 @@
+"""Directory snapshot analysis."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from semantic_drift_detector.entropy import compute_entropy
+from semantic_drift_detector.parser import build_snapshot
+from semantic_drift_detector.profile import load_dna_for_root
+from semantic_drift_detector.rules import evaluate_rules
+from semantic_drift_detector.types import CheckResult, DNAProfile, ModuleInfo
+
+
+def analyze_directory(root: str | Path, dna_path: str | Path | None = None) -> CheckResult:
+    """Analyze a full directory tree against DNA (loaded or inferred)."""
+    root_path = Path(root).resolve()
+    if not root_path.exists():
+        raise FileNotFoundError(f"Directory not found: {root_path}")
+
+    if dna_path is not None:
+        from semantic_drift_detector.profile import load_dna
+
+        dna = load_dna(dna_path)
+        source = str(dna_path)
+        # Still scan the live tree for current structure
+        modules, edges = build_snapshot(root_path)
+    else:
+        dna, source = load_dna_for_root(root_path)
+        modules, edges = dna.modules, dna.edges
+
+    violations = evaluate_rules(modules, edges, dna.rules, root=root_path)
+    entropy = compute_entropy(modules, edges, violations, dna.rules)
+    checked = [m.path for m in modules]
+
+    return CheckResult(
+        violations=violations,
+        entropy=entropy,
+        checked_files=checked,
+        dna_source=source,
+        threshold=dna.rules.entropy_threshold,
+        mode="directory",
+    )
+
+
+def analyze_directory_with_profile(
+    root: str | Path, dna: DNAProfile
+) -> CheckResult:
+    root_path = Path(root).resolve()
+    modules, edges = build_snapshot(root_path)
+    violations = evaluate_rules(modules, edges, dna.rules, root=root_path)
+    entropy = compute_entropy(modules, edges, violations, dna.rules)
+    return CheckResult(
+        violations=violations,
+        entropy=entropy,
+        checked_files=[m.path for m in modules],
+        dna_source=dna.project_root or "profile",
+        threshold=dna.rules.entropy_threshold,
+        mode="directory",
+    )
+
+
+def module_count(result: CheckResult) -> int:
+    return len(result.checked_files)
+
+
+__all__ = [
+    "analyze_directory",
+    "analyze_directory_with_profile",
+    "module_count",
+]
