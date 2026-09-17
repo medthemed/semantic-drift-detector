@@ -36,10 +36,12 @@ def extract_dna(root: str | Path, rules: DNARules | None = None) -> DNAProfile:
 
     Builds the module dependency graph and, when rules are not supplied,
     infers default layering from common package names (domain/application/
-    infrastructure/adapters/interfaces).
+    infrastructure/adapters/interfaces). Paths matching ``rules.exclude``
+    globs are skipped.
     """
     root_path = Path(root).resolve()
-    modules, edges = build_snapshot(root_path)
+    exclude = list(rules.exclude) if rules is not None else None
+    modules, edges = build_snapshot(root_path, exclude=exclude)
     if rules is None:
         rules = infer_rules(modules)
     elif not rules.allowed_roots:
@@ -197,6 +199,7 @@ def normalize_dna_dict(raw: dict) -> dict:
                 "naming",
                 "required_patterns",
                 "allowed_roots",
+                "exclude",
                 "entropy_threshold",
             }
             rules = {k: raw[k] for k in rules_keys if k in raw}
@@ -246,6 +249,8 @@ def dump_toml(data: dict) -> str:
         lines.append(
             "required_patterns = " + toml_value([str(x) for x in rules["required_patterns"]])
         )
+    if rules.get("exclude"):
+        lines.append("exclude = " + toml_value([str(x) for x in rules["exclude"]]))
     lines.append("")
 
     for layer in rules.get("layers") or []:
