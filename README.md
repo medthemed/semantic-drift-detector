@@ -94,6 +94,7 @@ STATUS: DRIFT DETECTED (exit 1)
 entropy_threshold = 0.25
 allowed_roots = ["myapp"]
 required_patterns = ["**/domain/**", "**/adapters/**"]
+exclude = ["**/migrations/**", "**/generated/**", "scripts/sandbox/*"]
 
 [[rules.layers]]
 name = "domain"
@@ -117,6 +118,24 @@ message = "modules must be snake_case"
 `sdd snapshot` writes a complete profile including the discovered module graph.
 Hand-edit the `rules` section; leave `[[modules]]` / `[[edges]]` alone (they are
 regenerated on the next snapshot).
+
+### Excluding paths
+
+Use `exclude` to skip generated code, migrations, vendored trees, or sandbox
+scripts. Patterns are POSIX globs matched against paths relative to the project
+root (`*` = one path segment, `**` = any depth):
+
+```toml
+[rules]
+exclude = [
+  "**/migrations/**",
+  "**/generated/**",
+  "scripts/sandbox/*",
+]
+```
+
+Excluded files are omitted from DNA extraction *and* from `sdd check` directory
+scans, so they never contribute to entropy or layering violations.
 
 ## How entropy works
 
