@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-18
+
 ### Added
 - `rules.exclude` path globs in `dna.toml` / `dna.yaml` / `dna.json` to skip
   generated code, migrations, and other non-architecture paths during DNA

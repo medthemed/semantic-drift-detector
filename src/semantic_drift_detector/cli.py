@@ -11,7 +11,7 @@ from semantic_drift_detector.diff_scan import analyze_diff
 from semantic_drift_detector.profile import extract_dna, save_dna, snapshot_path_default
 from semantic_drift_detector.report import render_json, render_text
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 EXIT_OK = 0
 EXIT_DRIFT = 1
