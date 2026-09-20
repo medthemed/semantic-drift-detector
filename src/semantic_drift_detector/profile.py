@@ -6,6 +6,7 @@ import json
 import re
 from pathlib import Path
 
+from semantic_drift_detector.errors import DnaFileNotFoundError, InvalidDnaError
 from semantic_drift_detector.parser import (
     build_snapshot,
     infer_allowed_roots,
@@ -135,13 +136,34 @@ def infer_rules(modules: list) -> DNARules:
 
 
 def load_dna(path: str | Path) -> DNAProfile:
-    """Load DNA profile from dna.toml / dna.yaml / dna.json."""
+    """Load DNA profile from dna.toml / dna.yaml / dna.json.
+
+    Raises
+    ------
+    DnaFileNotFoundError
+        If ``path`` does not exist.
+    InvalidDnaError
+        If the file content is not a valid DNA mapping.
+    """
     p = Path(path)
     if not p.is_file():
-        raise FileNotFoundError(f"DNA profile not found: {p}")
+        raise DnaFileNotFoundError(str(p))
     text = p.read_text(encoding="utf-8")
-    data = parse_dna_text(text, p.suffix.lower())
-    return DNAProfile.from_dict(data)
+    try:
+        data = parse_dna_text(text, p.suffix.lower())
+        return DNAProfile.from_dict(data)
+    except InvalidDnaError:
+        raise
+    except (KeyError, TypeError, ValueError, AttributeError) as exc:
+        raise InvalidDnaError(f"invalid DNA profile {p}: {exc}") from exc
+
+
+def load_profile(path: str | Path) -> DNAProfile:
+    """Load a DNA profile from a file path.
+
+    Stable public API name for :func:`load_dna`. Prefer this in new code.
+    """
+    return load_dna(path)
 
 
 def load_dna_for_root(root: str | Path) -> tuple[DNAProfile, str]:
@@ -188,7 +210,7 @@ def parse_toml(text: str) -> dict:
 def normalize_dna_dict(raw: dict) -> dict:
     """Accept either flat DNA dict or nested {dna: {...}} wrapper."""
     if not isinstance(raw, dict):
-        raise ValueError("DNA file must contain a mapping")
+        raise InvalidDnaError("DNA file must contain a mapping")
     if "dna" in raw and isinstance(raw["dna"], dict):
         return raw["dna"]
     if "rules" in raw or "modules" in raw or "layers" in raw:
@@ -473,6 +495,7 @@ __all__ = [
     "infer_rules",
     "load_dna",
     "load_dna_for_root",
+    "load_profile",
     "minimal_yaml_load",
     "normalize_dna_dict",
     "parse_dna_text",
