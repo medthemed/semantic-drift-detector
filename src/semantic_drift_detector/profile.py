@@ -5,8 +5,13 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from typing import Any
 
-from semantic_drift_detector.errors import DnaFileNotFoundError, InvalidDnaError
+from semantic_drift_detector.errors import (
+    DnaFileNotFoundError,
+    InvalidDnaError,
+    UnknownProfileError,
+)
 from semantic_drift_detector.parser import (
     build_snapshot,
     infer_allowed_roots,
@@ -166,6 +171,79 @@ def load_profile(path: str | Path) -> DNAProfile:
     return load_dna(path)
 
 
+def merge_profile_overrides(base: DNARules, overrides: dict[str, Any]) -> DNARules:
+    """Apply named-profile overrides onto base rules.
+
+    Scalar keys replace the base value. List keys (layers, forbidden_edges,
+    naming, required_patterns, allowed_roots, exclude) replace the list when
+    present; omitted keys inherit from base.
+    """
+    layers = base.layers
+    if "layers" in overrides:
+        layers = [
+            LayerSpec(
+                name=item["name"],
+                packages=list(item.get("packages") or []),
+                prefixes=list(item.get("prefixes") or []),
+            )
+            for item in overrides["layers"] or []
+        ]
+    forbidden = base.forbidden_edges
+    if "forbidden_edges" in overrides:
+        forbidden = [
+            ForbiddenEdge(
+                from_layer=item["from_layer"],
+                to_layer=item["to_layer"],
+                reason=item.get("reason", ""),
+            )
+            for item in overrides["forbidden_edges"] or []
+        ]
+    naming = base.naming
+    if "naming" in overrides:
+        naming = [
+            NamingRule(
+                kind=item["kind"],
+                pattern=item["pattern"],
+                message=item.get("message", ""),
+            )
+            for item in overrides["naming"] or []
+        ]
+    return DNARules(
+        layers=layers,
+        forbidden_edges=forbidden,
+        naming=naming,
+        required_patterns=list(
+            overrides["required_patterns"]
+            if "required_patterns" in overrides
+            else base.required_patterns
+        ),
+        allowed_roots=list(
+            overrides["allowed_roots"]
+            if "allowed_roots" in overrides
+            else base.allowed_roots
+        ),
+        exclude=list(overrides["exclude"] if "exclude" in overrides else base.exclude),
+        entropy_threshold=float(
+            overrides.get("entropy_threshold", base.entropy_threshold)
+        ),
+    )
+
+
+def select_profile(profile: DNAProfile, name: str | None = None) -> DNARules:
+    """Return rules for a named profile, or the base rules when name is None/"default".
+
+    Raises
+    ------
+    UnknownProfileError
+        If ``name`` is not defined in the DNA file's profiles section.
+    """
+    if name is None or name == "default":
+        return profile.rules
+    if name not in profile.profiles:
+        raise UnknownProfileError(name, available=profile.profile_names())
+    return merge_profile_overrides(profile.rules, profile.profiles[name])
+
+
 def load_dna_for_root(root: str | Path) -> tuple[DNAProfile, str]:
     """Load DNA from root if present; otherwise infer. Returns (profile, source)."""
     root_path = Path(root).resolve()
@@ -298,6 +376,25 @@ def dump_toml(data: dict) -> str:
         lines.append(f"pattern = {toml_str(rule['pattern'])}")
         if rule.get("message"):
             lines.append(f"message = {toml_str(rule['message'])}")
+        lines.append("")
+
+    profiles = data.get("profiles") or {}
+    for name in sorted(profiles):
+        overrides = profiles[name] or {}
+        lines.append(f"[profiles.{name}]")
+        if "entropy_threshold" in overrides:
+            lines.append(f"entropy_threshold = {overrides['entropy_threshold']}")
+        if "allowed_roots" in overrides:
+            lines.append(
+                "allowed_roots = " + toml_value([str(x) for x in overrides["allowed_roots"]])
+            )
+        if "required_patterns" in overrides:
+            lines.append(
+                "required_patterns = "
+                + toml_value([str(x) for x in overrides["required_patterns"]])
+            )
+        if "exclude" in overrides:
+            lines.append("exclude = " + toml_value([str(x) for x in overrides["exclude"]]))
         lines.append("")
 
     for mod in data.get("modules") or []:
@@ -496,6 +593,7 @@ __all__ = [
     "load_dna",
     "load_dna_for_root",
     "load_profile",
+    "merge_profile_overrides",
     "minimal_yaml_load",
     "normalize_dna_dict",
     "parse_dna_text",
@@ -503,5 +601,6 @@ __all__ = [
     "path_to_module",
     "relative_posix",
     "save_dna",
+    "select_profile",
     "snapshot_path_default",
 ]

@@ -2,7 +2,8 @@
 
 Public API:
     analyze_directory, analyze_diff, compute_entropy, evaluate_rules,
-    extract_dna, load_profile, render_json, render_text, save_dna
+    extract_dna, load_profile, render_json, render_text, save_dna,
+    select_profile
 """
 
 from __future__ import annotations
@@ -18,7 +19,13 @@ from semantic_drift_detector.errors import (
     SemanticDriftError,
     UnknownProfileError,
 )
-from semantic_drift_detector.profile import extract_dna, load_dna, load_profile, save_dna
+from semantic_drift_detector.profile import (
+    extract_dna,
+    load_dna,
+    load_profile,
+    save_dna,
+    select_profile,
+)
 from semantic_drift_detector.report import render_json, render_text
 from semantic_drift_detector.rules import evaluate_rules
 from semantic_drift_detector.types import (
@@ -54,4 +61,5 @@ __all__ = [
     "render_json",
     "render_text",
     "save_dna",
+    "select_profile",
 ]
