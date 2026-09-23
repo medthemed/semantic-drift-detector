@@ -18,7 +18,7 @@ from semantic_drift_detector.errors import (
 from semantic_drift_detector.profile import extract_dna, save_dna, snapshot_path_default
 from semantic_drift_detector.report import render_json, render_text
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 EXIT_OK = 0
 EXIT_DRIFT = 1
