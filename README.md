@@ -16,6 +16,7 @@ diff.
 - **Configurable rules** — `dna.toml` / `dna.yaml` with layers, forbidden edges, required patterns
 - **Entropy score (0–1)** — layer violations, naming drift, fan-out pressure, edge density
 - **Diff or directory checks** — analyze a full tree or a single `git diff`
+- **Batch mode** — `sdd check-batch` many roots or a manifest file in one run
 - **CI-friendly** — exit code `1` when entropy exceeds threshold; JSON or human reports
 - **Zero runtime deps** — Python 3.11+ stdlib only (`pytest` for tests)
 
@@ -61,6 +62,13 @@ sdd check /path/to/project --threshold 0.15
 
 # Named profiles from dna.toml ([profiles.strict], [profiles.relaxed], ...)
 sdd check /path/to/project --profile strict
+
+# Batch: check several roots (monorepo / multi-service)
+sdd check-batch services/api services/worker libs/core
+
+# Batch: check every path listed in a manifest (one root per line)
+sdd check-batch --manifest roots.txt
+sdd check-batch --manifest roots.txt --json
 ```
 
 Exit codes:
@@ -71,6 +79,37 @@ Exit codes:
 | 1 | Drift detected — threshold breach or error-level violations |
 | 2 | Usage error |
 
+## Batch checks
+
+`sdd check-batch` analyzes each root independently and prints an aggregate
+summary. Exit code is `1` if any root breached, `2` if any root failed to
+load (missing directory / DNA), else `0`.
+
+Manifest format (`roots.txt`):
+
+```
+# monorepo services
+services/api
+services/worker
+# relative paths resolve against the manifest directory
+../libs/core
+```
+
+Python API — the batch helpers are pure (no shared mutable state), so you
+can map `check_one` across a thread or process pool:
+
+```python
+from concurrent.futures import ProcessPoolExecutor
+from semantic_drift_detector import check_batch, check_one, load_manifest
+
+report = check_batch(["services/api", "services/worker"])
+print(report.ok_count, report.breached_count, report.error_count)
+
+roots = load_manifest("roots.txt")
+with ProcessPoolExecutor() as pool:
+    items = list(pool.map(check_one, roots))
+```
+
 ## Python API
 
 Import from the package root. These names are the stable surface:
@@ -78,7 +117,10 @@ Import from the package root. These names are the stable surface:
 ```python
 from semantic_drift_detector import (
     analyze_directory,
+    check_batch,
+    check_one,
     extract_dna,
+    load_manifest,
     load_profile,   # preferred name for loading dna.toml / yaml / json
     render_json,
     render_text,

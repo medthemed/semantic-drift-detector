@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `sdd check-batch` analyzes multiple project roots in one run.
+- `--manifest FILE` reads roots from a text file (one path per line, `#`
+  comments and blank lines skipped; relative paths resolve against the
+  manifest directory).
+- Pure-core batch API: `check_batch`, `check_one`, `load_manifest`,
+  `BatchReport`, `BatchItemResult`. Safe to parallelize with a thread or
+  process pool.
+- Aggregate text/JSON batch report and exit codes (0 ok, 1 any drift,
+  2 any load error / usage).
+- Multi-tree fixture tests covering mixed clean/drifted roots, manifests,
+  and concurrent `check_one` calls.
+
 ## [0.3.0] - 2026-09-23
 
 ### Added
