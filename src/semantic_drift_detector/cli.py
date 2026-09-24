@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from semantic_drift_detector.analyzer import analyze_directory
+from semantic_drift_detector.batch import check_batch, resolve_roots
 from semantic_drift_detector.diff_scan import analyze_diff
 from semantic_drift_detector.errors import (
     DirectoryNotFoundError,
@@ -16,7 +17,12 @@ from semantic_drift_detector.errors import (
     UnknownProfileError,
 )
 from semantic_drift_detector.profile import extract_dna, save_dna, snapshot_path_default
-from semantic_drift_detector.report import render_json, render_text
+from semantic_drift_detector.report import (
+    render_batch_json,
+    render_batch_text,
+    render_json,
+    render_text,
+)
 
 __version__ = "0.3.0"
 
@@ -108,6 +114,41 @@ def build_parser() -> argparse.ArgumentParser:
         help="Include entropy components in text report",
     )
 
+    # check-batch
+    p_batch = sub.add_parser(
+        "check-batch",
+        help="Check multiple project roots (or a manifest of paths) in one run",
+    )
+    p_batch.add_argument(
+        "roots",
+        nargs="*",
+        default=None,
+        help="Project roots to check",
+    )
+    p_batch.add_argument(
+        "--manifest",
+        default=None,
+        metavar="FILE",
+        help="Manifest file with one project root per line (# comments allowed)",
+    )
+    p_batch.add_argument(
+        "--dna",
+        default=None,
+        metavar="PATH",
+        help="Explicit DNA profile applied to every root",
+    )
+    p_batch.add_argument(
+        "--profile",
+        default=None,
+        metavar="NAME",
+        help="Named profile from the DNA profiles section",
+    )
+    p_batch.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit machine-readable JSON batch report",
+    )
+
     # version subcommand (alias)
     sub.add_parser("version", help="Print version and exit")
 
@@ -180,6 +221,32 @@ def cmd_check(args: argparse.Namespace) -> int:
     return EXIT_DRIFT if result.breached else EXIT_OK
 
 
+def cmd_check_batch(args: argparse.Namespace) -> int:
+    try:
+        roots = resolve_roots(args.roots or [], manifest=args.manifest)
+    except FileNotFoundError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    if not roots:
+        print("error: no roots provided (pass roots or --manifest)", file=sys.stderr)
+        return EXIT_USAGE
+
+    dna_path = Path(args.dna) if args.dna else None
+    report = check_batch(roots, dna_path=dna_path, profile_name=args.profile)
+
+    if args.json:
+        sys.stdout.write(render_batch_json(report))
+    else:
+        sys.stdout.write(render_batch_text(report))
+
+    if report.any_error:
+        return EXIT_USAGE
+    if report.any_breached:
+        return EXIT_DRIFT
+    return EXIT_OK
+
+
 def cmd_version(_args: argparse.Namespace) -> int:
     print(f"semantic-drift-detector {__version__}")
     return EXIT_OK
@@ -193,6 +260,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_snapshot(args)
     if args.command == "check":
         return cmd_check(args)
+    if args.command == "check-batch":
+        return cmd_check_batch(args)
     if args.command == "version":
         return cmd_version(args)
 

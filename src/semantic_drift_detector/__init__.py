@@ -1,14 +1,21 @@
 """Semantic drift detector: catch architectural entropy before it compounds.
 
 Public API:
-    analyze_directory, analyze_diff, compute_entropy, evaluate_rules,
-    extract_dna, load_profile, render_json, render_text, save_dna,
-    select_profile
+    analyze_directory, analyze_diff, check_batch, check_one, compute_entropy,
+    evaluate_rules, extract_dna, load_manifest, load_profile, render_json,
+    render_text, save_dna, select_profile
 """
 
 from __future__ import annotations
 
 from semantic_drift_detector.analyzer import analyze_directory
+from semantic_drift_detector.batch import (
+    BatchItemResult,
+    BatchReport,
+    check_batch,
+    check_one,
+    load_manifest,
+)
 from semantic_drift_detector.diff_scan import analyze_diff
 from semantic_drift_detector.entropy import compute_entropy
 from semantic_drift_detector.errors import (
@@ -39,6 +46,8 @@ from semantic_drift_detector.types import (
 __version__ = "0.3.0"
 
 __all__ = [
+    "BatchItemResult",
+    "BatchReport",
     "CheckResult",
     "DNAProfile",
     "DNARules",
@@ -53,10 +62,13 @@ __all__ = [
     "__version__",
     "analyze_diff",
     "analyze_directory",
+    "check_batch",
+    "check_one",
     "compute_entropy",
     "evaluate_rules",
     "extract_dna",
     "load_dna",
+    "load_manifest",
     "load_profile",
     "render_json",
     "render_text",
