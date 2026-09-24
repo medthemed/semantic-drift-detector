@@ -24,7 +24,7 @@ from semantic_drift_detector.report import (
     render_text,
 )
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 EXIT_OK = 0
 EXIT_DRIFT = 1
