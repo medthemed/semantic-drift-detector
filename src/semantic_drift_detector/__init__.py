@@ -33,7 +33,11 @@ from semantic_drift_detector.profile import (
     save_dna,
     select_profile,
 )
-from semantic_drift_detector.report import render_json, render_text
+from semantic_drift_detector.report import (
+    render_json,
+    render_sarif_lite,
+    render_text,
+)
 from semantic_drift_detector.rules import evaluate_rules
 from semantic_drift_detector.types import (
     CheckResult,
@@ -71,6 +75,7 @@ __all__ = [
     "load_manifest",
     "load_profile",
     "render_json",
+    "render_sarif_lite",
     "render_text",
     "save_dna",
     "select_profile",

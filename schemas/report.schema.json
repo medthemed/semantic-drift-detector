@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/medthemed/semantic-drift-detector/schemas/report.schema.json",
+  "title": "semantic-drift-detector check report",
+  "description": "Stable stdout contract for `sdd check --format json`. See README 'Stdout contract'.",
+  "type": "object",
+  "required": ["mode", "dna_source", "threshold", "breached", "checked_files", "violations", "summary"],
+  "additionalProperties": true,
+  "properties": {
+    "mode": {
+      "type": "string",
+      "enum": ["directory", "diff"]
+    },
+    "dna_source": {
+      "type": "string",
+      "description": "Path to the DNA profile, or 'inferred' when rules were derived from the tree"
+    },
+    "threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "breached": {
+      "type": "boolean",
+      "description": "True when entropy exceeds threshold or any error-level violation exists"
+    },
+    "checked_files": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "severity", "message"],
+        "properties": {
+          "kind": { "type": "string" },
+          "severity": { "type": "string", "enum": ["error", "warning"] },
+          "message": { "type": "string" },
+          "source": { "type": "string" },
+          "target": { "type": "string" },
+          "file": { "type": ["string", "null"] },
+          "line": { "type": ["integer", "null"] },
+          "rule": { "type": "string" }
+        }
+      }
+    },
+    "entropy": {
+      "type": ["object", "null"],
+      "required": ["value", "error_count", "warning_count"],
+      "properties": {
+        "value": { "type": "number", "minimum": 0, "maximum": 1 },
+        "error_count": { "type": "integer", "minimum": 0 },
+        "warning_count": { "type": "integer", "minimum": 0 },
+        "edge_count": { "type": "integer", "minimum": 0 },
+        "module_count": { "type": "integer", "minimum": 0 },
+        "components": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["errors", "warnings", "total"],
+      "properties": {
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
