@@ -23,7 +23,7 @@ from semantic_drift_detector.report import (
     render_result,
 )
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 EXIT_OK = 0
 EXIT_DRIFT = 1
