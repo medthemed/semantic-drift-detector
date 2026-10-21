@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-22
+
+### Added
+- `sdd watch <path>` polling watch mode (issue #14): re-checks a tree
+  during local development without OS-specific file watchers.
+  `--interval SECONDS` sets the poll interval (default 2.0).
+- Tree fingerprinting: a `(path, mtime, size)` fingerprint of the tree's
+  Python files (plus a root DNA file) drives re-checks — the drift check
+  re-runs only when the fingerprint changes, and a report is printed only
+  when the check result itself changes.
+- Watch library API in the public exports: `directory_fingerprint`,
+  `WatchEvent`, `watch_events` (generator, boundable via `max_polls` /
+  `once`), and `run_watch` (callback helper used by the CLI).
+- `sdd watch --once` single-pass mode for smoke checks / CI.
+- Watch accepts the same `--dna` / `--profile` / `--threshold` /
+  `--format` / `--json` / `--verbose` options as `sdd check`.
+  Ctrl-C exits cleanly; the exit code reflects the last reported result
+  (0 ok, 1 drift, 2 usage error).
+
+### Fixed
+- `sdd check` no longer replays the modules/edges stored in `dna.toml`
+  when a DNA file is present at the project root. It now always rescans
+  the current tree and uses the DNA file for rules only, so edits made
+  after `sdd snapshot` — new files and new imports — are actually
+  detected. (Previously, a forbidden import added after snapshotting
+  still reported `STATUS: OK`.)
+- Directory scans no longer silently return zero files when the project
+  itself lives under a directory named `build`, `dist`, `venv`, `env`,
+  etc. Skip-directory matching now only applies to directories inside
+  the scanned tree, not to ancestors of the project root.
+
 ## [0.5.0] - 2026-09-25
 
 ### Added
