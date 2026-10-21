@@ -17,6 +17,7 @@ diff.
 - **Entropy score (0–1)** — layer violations, naming drift, fan-out pressure, edge density
 - **Diff or directory checks** — analyze a full tree or a single `git diff`
 - **Batch mode** — `sdd check-batch` many roots or a manifest file in one run
+- **Watch mode** — `sdd watch` polls a tree and re-checks only when files change
 - **CI-friendly** — exit code `1` when entropy exceeds threshold; text / JSON / SARIF-lite reports
 - **Zero runtime deps** — Python 3.11+ stdlib only (`pytest` for tests)
 
@@ -64,6 +65,10 @@ sdd check /path/to/project --threshold 0.15
 
 # Named profiles from dna.toml ([profiles.strict], [profiles.relaxed], ...)
 sdd check /path/to/project --profile strict
+
+# Watch: keep checking a tree while you edit (Ctrl-C to stop)
+sdd watch /path/to/project
+sdd watch /path/to/project --interval 5
 
 # Batch: check several roots (monorepo / multi-service)
 sdd check-batch services/api services/worker libs/core
@@ -135,6 +140,50 @@ print(report.ok_count, report.breached_count, report.error_count)
 roots = load_manifest("roots.txt")
 with ProcessPoolExecutor() as pool:
     items = list(pool.map(check_one, roots))
+```
+
+## Watch mode
+
+`sdd watch <path>` keeps a tree under continuous drift checks during
+local development, without OS-specific file watchers. It runs an initial
+check, then polls a lightweight **fingerprint** of the tree — `(relative
+path, mtime, size)` for every Python file, plus a root DNA file when
+present — every `--interval` seconds (default `2.0`):
+
+- the drift check **re-runs only when the fingerprint changes**;
+- a report is **printed only when the check result changes**, so saves
+  that don't affect the outcome stay quiet;
+- **Ctrl-C exits cleanly** (no traceback); the exit code reflects the
+  last reported result (`0` ok, `1` drift, `2` usage error).
+
+```bash
+# Watch the current project, default 2s polling
+sdd watch .
+
+# Slower polling, stricter profile, JSON reports
+sdd watch . --interval 5 --profile strict --format json
+
+# Single pass, no polling (smoke check / scripts)
+sdd watch . --once
+```
+
+Watch accepts the same `--dna` / `--profile` / `--threshold` /
+`--format` / `--json` / `--verbose` options as `sdd check`. The watch
+banner (`[watch] ...`) goes to **stderr**, so piped stdout reports keep
+the usual stdout contract.
+
+Python API — the loop is a generator, so tests and embedders can bound
+it instead of polling forever:
+
+```python
+from semantic_drift_detector import directory_fingerprint, run_watch, watch_events
+
+print(directory_fingerprint("."))          # ((path, mtime_ns, size), ...)
+
+for event in watch_events(".", interval=2.0, max_polls=10):
+    print(event.initial, event.breached)   # first event is the initial check
+
+events = run_watch(".", once=True, on_event=lambda e: print(e.result.breached))
 ```
 
 ## Python API

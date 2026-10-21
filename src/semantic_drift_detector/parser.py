@@ -182,7 +182,15 @@ def iter_python_files(root: Path, exclude: list[str] | None = None) -> list[Path
     files: list[Path] = []
     root = root.resolve()
     for path in sorted(root.rglob("*.py")):
-        if any(part in SKIP_DIRS for part in path.parts):
+        # Skip well-known noise directories *inside* the tree. Only the
+        # relative parts are consulted: consulting the absolute path would
+        # also skip every file when the project itself lives under a
+        # directory named e.g. "build", "dist" or "venv".
+        try:
+            rel_parts = path.relative_to(root).parts
+        except ValueError:
+            rel_parts = path.parts
+        if any(part in SKIP_DIRS for part in rel_parts[:-1]):
             continue
         if not path.is_file():
             continue

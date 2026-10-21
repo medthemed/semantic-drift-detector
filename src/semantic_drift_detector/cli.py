@@ -23,7 +23,7 @@ from semantic_drift_detector.report import (
     render_result,
 )
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 EXIT_OK = 0
 EXIT_DRIFT = 1
@@ -160,6 +160,65 @@ def build_parser() -> argparse.ArgumentParser:
         help="Shorthand for --format json",
     )
 
+    # watch
+    p_watch = sub.add_parser(
+        "watch",
+        help="Poll a directory and re-check only when its fingerprint changes",
+    )
+    p_watch.add_argument(
+        "root",
+        nargs="?",
+        default=".",
+        help="Directory to watch (default: current directory)",
+    )
+    p_watch.add_argument(
+        "--interval",
+        type=float,
+        default=2.0,
+        metavar="SECONDS",
+        help="Poll interval in seconds (default: 2.0)",
+    )
+    p_watch.add_argument(
+        "--dna",
+        default=None,
+        metavar="PATH",
+        help="Path to dna.toml / dna.yaml (default: look under root, else infer)",
+    )
+    p_watch.add_argument(
+        "--profile",
+        default=None,
+        metavar="NAME",
+        help="Named profile from the DNA profiles section (default: base rules)",
+    )
+    p_watch.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help="Override entropy threshold (0-1)",
+    )
+    p_watch.add_argument(
+        "--format",
+        choices=FORMAT_CHOICES,
+        default="text",
+        help="Report format: text, json, or sarif-lite (default: text)",
+    )
+    p_watch.add_argument(
+        "--json",
+        action="store_true",
+        help="Shorthand for --format json",
+    )
+    p_watch.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Include entropy components in text report",
+    )
+    p_watch.add_argument(
+        "--once",
+        action="store_true",
+        help="Run a single check and exit (no polling)",
+    )
+
     # version subcommand (alias)
     sub.add_parser("version", help="Print version and exit")
 
@@ -254,6 +313,52 @@ def cmd_check_batch(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_watch(args: argparse.Namespace) -> int:
+    from semantic_drift_detector.watch import WatchEvent, run_watch
+
+    root = Path(args.root).resolve()
+    if not root.exists():
+        print(f"error: directory not found: {root}", file=sys.stderr)
+        return EXIT_USAGE
+    if not args.once and args.interval <= 0:
+        print(
+            f"error: --interval must be positive, got {args.interval}",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+
+    dna_path = Path(args.dna) if args.dna else None
+    fmt = "json" if args.json else args.format
+
+    def _report(event: WatchEvent) -> None:
+        result = event.result
+        if args.threshold is not None:
+            result.threshold = args.threshold
+        label = "initial check" if event.initial else "change detected"
+        # Report content goes to stdout (see the stdout contract); the
+        # one-line watch banner goes to stderr so piped reports stay clean.
+        print(f"[watch] {label}: {event.root}", file=sys.stderr)
+        sys.stdout.write(render_result(result, fmt=fmt, verbose=args.verbose))
+        sys.stdout.flush()
+
+    try:
+        events = run_watch(
+            root,
+            interval=args.interval,
+            dna_path=dna_path,
+            profile_name=args.profile,
+            once=args.once,
+            on_event=_report,
+        )
+    except SemanticDriftError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    if not events:
+        return EXIT_OK
+    return EXIT_DRIFT if events[-1].breached else EXIT_OK
+
+
 def cmd_version(_args: argparse.Namespace) -> int:
     print(f"semantic-drift-detector {__version__}")
     return EXIT_OK
@@ -269,6 +374,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_check(args)
     if args.command == "check-batch":
         return cmd_check_batch(args)
+    if args.command == "watch":
+        return cmd_watch(args)
     if args.command == "version":
         return cmd_version(args)
 

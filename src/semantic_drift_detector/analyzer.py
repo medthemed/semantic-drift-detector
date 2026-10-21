@@ -58,10 +58,12 @@ def analyze_directory(
     else:
         dna, source = load_dna_for_root(root_path)
         rules = select_profile(dna, profile_name)
-        if rules.exclude or profile_name not in (None, "default"):
-            modules, edges = build_snapshot(root_path, exclude=list(rules.exclude))
-        else:
-            modules, edges = dna.modules, dna.edges
+        # Always rescan the current tree. The modules/edges stored in a
+        # dna.toml are a point-in-time snapshot: reusing them here would
+        # make `check` report the state of the code at snapshot time and
+        # silently miss every edit made since (new files, new imports).
+        # The DNA file supplies the *rules*; the scan supplies the facts.
+        modules, edges = build_snapshot(root_path, exclude=list(rules.exclude))
 
     violations = evaluate_rules(modules, edges, rules, root=root_path)
     entropy = compute_entropy(modules, edges, violations, rules)

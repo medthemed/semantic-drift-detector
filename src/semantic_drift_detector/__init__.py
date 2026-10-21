@@ -2,8 +2,9 @@
 
 Public API:
     analyze_directory, analyze_diff, check_batch, check_one, compute_entropy,
-    evaluate_rules, extract_dna, load_manifest, load_profile, render_json,
-    render_text, save_dna, select_profile
+    directory_fingerprint, evaluate_rules, extract_dna, load_manifest,
+    load_profile, render_json, render_text, run_watch, save_dna,
+    select_profile, watch_events, WatchEvent
 """
 
 from __future__ import annotations
@@ -46,8 +47,14 @@ from semantic_drift_detector.types import (
     EntropyScore,
     Violation,
 )
+from semantic_drift_detector.watch import (
+    WatchEvent,
+    directory_fingerprint,
+    run_watch,
+    watch_events,
+)
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 __all__ = [
     "BatchItemResult",
@@ -63,12 +70,14 @@ __all__ = [
     "SemanticDriftError",
     "UnknownProfileError",
     "Violation",
+    "WatchEvent",
     "__version__",
     "analyze_diff",
     "analyze_directory",
     "check_batch",
     "check_one",
     "compute_entropy",
+    "directory_fingerprint",
     "evaluate_rules",
     "extract_dna",
     "load_dna",
@@ -77,6 +86,8 @@ __all__ = [
     "render_json",
     "render_sarif_lite",
     "render_text",
+    "run_watch",
     "save_dna",
     "select_profile",
+    "watch_events",
 ]
